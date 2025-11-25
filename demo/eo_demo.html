@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EO Framework Demo - Epistemic Observability</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="eo_styles.css">
+    <link rel="stylesheet" href="eo_three_level_detail.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f4f5f7;
+            color: #0b1324;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .demo-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            letter-spacing: -0.02em;
+        }
+
+        .demo-header p {
+            margin: 0;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .demo-section h2 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .demo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .demo-table th,
+        .demo-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .demo-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+        }
+
+        .demo-table td {
+            font-size: 14px;
+        }
+
+        .demo-table tr:hover td {
+            background: #f9fafb;
+        }
+
+        .demo-table td[data-eo-cell] {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .demo-table td[data-eo-cell]:hover {
+            background: #dbeafe;
+        }
+
+        .demo-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .demo-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .demo-btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .demo-btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .demo-btn-secondary {
+            background: #f4f5f7;
+            color: #0b1324;
+            border: 1px solid #e5e7eb;
+        }
+
+        .demo-btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .demo-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .demo-stat {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .demo-stat-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .demo-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0b1324;
+        }
+
+        .demo-log {
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+            color: #e5e7eb;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .demo-log-entry {
+            margin-bottom: 4px;
+        }
+
+        .demo-log-time {
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🌟 EO Framework Demo - Three-Level Detail View</h1>
+            <p>
+                Epistemic Observability (EO) brings automatic context tracking, superposition of multiple values,
+                and stability classification to your data. This demo features the <strong>Three-Level Detail System</strong>:
+            </p>
+            <ul style="margin: 12px 0 0 0; padding-left: 24px; line-height: 1.8;">
+                <li><strong>Level 1 (Inline):</strong> Hover over cells to see type badges and indicators. Double-click to edit.</li>
+                <li><strong>Level 2 (Record Modal):</strong> Click the first cell in any row to view the full record with tabs for Fields, Relationships, Provenance, History, and Context.</li>
+                <li><strong>Level 3 (Field Lens):</strong> In the record modal, click any field label to open the deep field inspector showing definitions, provenance, relationships, data lineage, and actions.</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>Sample Data Table</h2>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+                <strong>Hover</strong> over cells to see type indicators. <strong>Double-click</strong> to edit.
+                <strong>Click the Subject column</strong> to open the full record modal.
+                Columns marked with 🧮 are <strong>formula fields</strong> that automatically calculate values from other fields.
+            </p>
+
+            <table class="demo-table" id="demoTable">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Observed At</th>
+                        <th>Air Temp (°C)</th>
+                        <th>Air Temp (°F) 🧮</th>
+                        <th>Wind Speed</th>
+                        <th>Power Draw</th>
+                        <th>Battery</th>
+                        <th>Battery Status 🧮</th>
+                        <th>Stability</th>
+                    </tr>
+                </thead>
+                <tbody id="demoTableBody">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <div class="demo-actions">
+                <button class="demo-btn demo-btn-primary" onclick="demo.simulateImport()">
+                    📥 Simulate CSV Import
+                </button>
+                <button class="demo-btn demo-btn-secondary" onclick="demo.simulateEdit()">
+                    ✏️ Simulate User Edit
+                </button>
+                <button class="demo-btn demo-btn-secondary" onclick="demo.addSuperposition()">
+                    ⚡ Add Superposition
+                </button>
+                <button class="demo-btn demo-btn-secondary" onclick="demo.refreshStats()">
+                    📊 Refresh Stats
+                </button>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>EO Statistics</h2>
+            <div class="demo-stats" id="demoStats">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Activity Log</h2>
+            <div class="demo-log" id="demoLog">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Load EO Framework -->
+    <script src="eo_data_structures.js"></script>
+    <script src="eo_context_engine.js"></script>
+    <script src="eo_sup_detector.js"></script>
+    <script src="eo_stability_classifier.js"></script>
+    <script src="eo_cell_modal.js"></script>
+    <script src="eo_integration.js"></script>
+
+    <!-- Load Three-Level Detail System -->
+    <script src="eo_inline_cell_editor.js"></script>
+    <script src="eo_record_modal.js"></script>
+    <script src="eo_field_lens_panel.js"></script>
+    <script src="eo_three_level_integration.js"></script>
+
+    <!-- Load Formula Engine -->
+    <script src="../formula_engine.js"></script>
+    <script src="../formula_field_service.js"></script>
+
+    <script>
+        // Demo application
+        class EODemo {
+            constructor() {
+                this.eo = new EOIntegration();
+                this.eo.initialize();
+                this.eo.setCurrentUser('demo_user', 'Demo User');
+                this.eo.enableDebug();
+
+                // Initialize three-level detail system
+                this.threeLevelSystem = new EOThreeLevelIntegration(this.eo);
+
+                // Initialize formula field service
+                this.formulaService = new FormulaFieldService();
+
+                // Define schema with formula field
+                this.schema = [
+                    { id: 'subject_id', name: 'Subject ID', type: 'TEXT' },
+                    { id: 'subject_label', name: 'Subject Label', type: 'TEXT' },
+                    { id: 'subject_type', name: 'Subject Type', type: 'TEXT' },
+                    { id: 'observed_at', name: 'Observed At', type: 'DATE' },
+                    { id: 'air_temp_c', name: 'Air Temp (°C)', type: 'NUMBER' },
+                    { id: 'wind_speed', name: 'Wind Speed (m/s)', type: 'NUMBER' },
+                    { id: 'power_draw', name: 'Power Draw (W)', type: 'NUMBER' },
+                    { id: 'battery', name: 'Battery (%)', type: 'NUMBER' },
+                    // Formula field: Convert Celsius to Fahrenheit
+                    {
+                        id: 'air_temp_f',
+                        name: 'Air Temp (°F)',
+                        type: 'FORMULA',
+                        formula: '{Air Temp (°C)} * 1.8 + 32'
+                    },
+                    // Formula field: Battery status based on level
+                    {
+                        id: 'battery_status',
+                        name: 'Battery Status',
+                        type: 'FORMULA',
+                        formula: 'IF({Battery (%)} >= 90, "Excellent", IF({Battery (%)} >= 70, "Good", IF({Battery (%)} >= 50, "Fair", "Low")))'
+                    }
+                ];
+
+                this.sampleData = [
+                    {
+                        id: 'obs_1',
+                        'Subject ID': 'sensor:wx-alpha',
+                        'Subject Label': 'WX Alpha - Rooftop Station',
+                        'Subject Type': 'weather_station',
+                        'Observed At': '2025-11-05T09:00:00Z',
+                        'Air Temp (°C)': 18.6,
+                        'Air Temp (°C) Definition ID': 'def:met.air_temperature',
+                        'Wind Speed (m/s)': 5.2,
+                        'Wind Speed (m/s) Definition ID': 'def:met.wind_speed',
+                        'Power Draw (W)': 12.4,
+                        'Power Draw (W) Definition ID': 'def:device.power_draw',
+                        'Battery (%)': 94,
+                        'Battery (%) Definition ID': 'def:device.battery_level'
+                    },
+                    {
+                        id: 'obs_2',
+                        'Subject ID': 'sensor:wx-bravo',
+                        'Subject Label': 'WX Bravo - Roof Hatch',
+                        'Subject Type': 'weather_station',
+                        'Observed At': '2025-11-05T09:10:00Z',
+                        'Air Temp (°C)': 19.1,
+                        'Air Temp (°C) Definition ID': 'def:met.air_temperature',
+                        'Wind Speed (m/s)': 6.8,
+                        'Wind Speed (m/s) Definition ID': 'def:met.wind_speed',
+                        'Power Draw (W)': 14.2,
+                        'Power Draw (W) Definition ID': 'def:device.power_draw',
+                        'Battery (%)': 90,
+                        'Battery (%) Definition ID': 'def:device.battery_level'
+                    },
+                    {
+                        id: 'obs_3',
+                        'Subject ID': 'sensor:wx-charlie',
+                        'Subject Label': 'WX Charlie - Loading Dock',
+                        'Subject Type': 'weather_station',
+                        'Observed At': '2025-11-05T09:20:00Z',
+                        'Air Temp (°C)': 21.3,
+                        'Air Temp (°C) Definition ID': 'def:met.air_temperature',
+                        'Wind Speed (m/s)': 4.7,
+                        'Wind Speed (m/s) Definition ID': 'def:met.wind_speed',
+                        'Power Draw (W)': 11.8,
+                        'Power Draw (W) Definition ID': 'def:device.power_draw',
+                        'Battery (%)': 88,
+                        'Battery (%) Definition ID': 'def:device.battery_level'
+                    }
+                ];
+
+                this.logEntries = [];
+            }
+
+            // Evaluate formula field for a record
+            evaluateFormula(formulaField, recordId) {
+                try {
+                    // Get the record data
+                    const record = this.eo.getAllRecords().find(r => r.record_id === recordId);
+                    if (!record) return 'N/A';
+
+                    // Build a simple record object with field values
+                    const recordData = {};
+                    record.cells.forEach(cell => {
+                        const fieldName = cell.field_name;
+                        const value = this.eo.getCellDisplayValue(recordId, fieldName);
+                        recordData[fieldName] = value;
+                    });
+
+                    // Evaluate the formula
+                    const result = this.formulaService.evaluateForRecord(
+                        formulaField.formula,
+                        recordData,
+                        this.schema
+                    );
+
+                    if (result.success) {
+                        return result.value;
+                    } else {
+                        console.error('Formula error:', result.error);
+                        return 'Error';
+                    }
+                } catch (error) {
+                    console.error('Formula evaluation error:', error);
+                    return 'Error';
+                }
+            }
+
+            init() {
+                this.log('🌟 EO Demo initialized');
+                this.simulateImport();
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                this.logEntries.unshift({ timestamp, message });
+                if (this.logEntries.length > 50) this.logEntries.pop();
+
+                const logDiv = document.getElementById('demoLog');
+                logDiv.innerHTML = this.logEntries.map(entry => `
+                    <div class="demo-log-entry">
+                        <span class="demo-log-time">[${entry.timestamp}]</span> ${entry.message}
+                    </div>
+                `).join('');
+            }
+
+            simulateImport() {
+                this.log('📥 Importing sample data from "wx_station_observations.csv"');
+                this.eo.handleImport('wx_station_observations.csv', this.sampleData);
+                this.log(`✓ Imported ${this.sampleData.length} records with automatic context inference`);
+                this.renderTable();
+                this.refreshStats();
+            }
+
+            simulateEdit() {
+                const records = this.eo.getAllRecords();
+                if (records.length === 0) {
+                    this.log('⚠️ No records available. Import data first.');
+                    return;
+                }
+
+                const record = records[Math.floor(Math.random() * records.length)];
+                const fieldName = 'Power Draw (W)';
+                const oldValue = this.eo.getCellDisplayValue(record.record_id, fieldName);
+                const newValue = Number(Math.max(0, Number(oldValue) + (Math.random() * 2 - 1)).toFixed(1));
+
+                this.log(`✏️ User editing ${record.record_id}.${fieldName}: ${oldValue} → ${newValue}`);
+                this.eo.handleEdit(record.record_id, fieldName, oldValue, newValue);
+                this.log('✓ Edit captured with context');
+
+                this.renderTable();
+                this.refreshStats();
+            }
+
+            addSuperposition() {
+                const records = this.eo.getAllRecords();
+                if (records.length === 0) {
+                    this.log('⚠️ No records available. Import data first.');
+                    return;
+                }
+
+                const record = records[0];
+                const fieldName = 'Air Temp (°C)';
+                const cell = record.cells.find(c => c.field_name === fieldName);
+
+                if (!cell) return;
+
+                // Add a new value with different context (manual estimate)
+                const newValue = cell.values[0].value + 0.8; // small adjustment from a manual note
+                const context = EODataStructures.createContextSchema({
+                    method: 'declared',
+                    definition: 'def:met.air_temperature',
+                    scale: 'individual',
+                    source: { system: 'user_edit' },
+                    agent: { type: 'person', id: 'analyst', name: 'Business Analyst' }
+                });
+
+                EODataStructures.addValueToCell(cell, newValue, context);
+
+                this.log(`⚡ Added superposition to ${record.record_id}.${fieldName}`);
+                this.log(`   Now has ${cell.values.length} perspectives: measured (${cell.values[0].value}) + declared (${newValue})`);
+
+                this.renderTable();
+                this.refreshStats();
+            }
+
+            renderTable() {
+                const tbody = document.getElementById('demoTableBody');
+                const records = this.eo.getAllRecords();
+
+                // Get formula fields
+                const tempFormula = this.schema.find(f => f.id === 'air_temp_f');
+                const batteryStatusFormula = this.schema.find(f => f.id === 'battery_status');
+
+                tbody.innerHTML = records.map(record => {
+                    const subject = this.eo.getCellDisplayValue(record.record_id, 'Subject Label');
+                    const observedAt = this.eo.getCellDisplayValue(record.record_id, 'Observed At');
+                    const airTemp = this.eo.getCellDisplayValue(record.record_id, 'Air Temp (°C)');
+                    const windSpeed = this.eo.getCellDisplayValue(record.record_id, 'Wind Speed (m/s)');
+                    const powerDraw = this.eo.getCellDisplayValue(record.record_id, 'Power Draw (W)');
+                    const battery = this.eo.getCellDisplayValue(record.record_id, 'Battery (%)');
+
+                    // Evaluate formula fields
+                    const airTempF = this.evaluateFormula(tempFormula, record.record_id);
+                    const batteryStatus = this.evaluateFormula(batteryStatusFormula, record.record_id);
+
+                    const airTempIndicator = this.eo.getCellSUPIndicator(record.record_id, 'Air Temp (°C)');
+                    const stabilityBadge = this.eo.getStabilityBadge(record.record_id);
+
+                    // Format temperature in Fahrenheit
+                    const airTempFFormatted = typeof airTempF === 'number' ? airTempF.toFixed(1) : airTempF;
+
+                    return `
+                        <tr>
+                            <td data-eo-cell data-record-id="${record.record_id}" data-field-name="Subject Label" data-record-label style="cursor: pointer; font-weight: 500;" title="Click to view full record">
+                                ${subject}
+                            </td>
+                            <td data-eo-cell data-record-id="${record.record_id}" data-field-name="Observed At">
+                                ${new Date(observedAt).toLocaleString()}
+                            </td>
+                            <td data-eo-cell data-record-id="${record.record_id}" data-field-name="Air Temp (°C)">
+                                ${airTemp}°C
+                                ${airTempIndicator}
+                            </td>
+                            <td style="background: #f0fdf4; font-style: italic;">
+                                ${airTempFFormatted}°F
+                            </td>
+                            <td data-eo-cell data-record-id="${record.record_id}" data-field-name="Wind Speed (m/s)">
+                                ${windSpeed} m/s
+                            </td>
+                            <td data-eo-cell data-record-id="${record.record_id}" data-field-name="Power Draw (W)">
+                                ${powerDraw} W
+                            </td>
+                            <td data-eo-cell data-record-id="${record.record_id}" data-field-name="Battery (%)">
+                                ${battery}%
+                            </td>
+                            <td style="background: #f0fdf4; font-style: italic;">
+                                ${batteryStatus}
+                            </td>
+                            <td>
+                                ${stabilityBadge}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Attach three-level detail system to the table
+                const table = document.getElementById('demoTable');
+                this.threeLevelSystem.attachToGrid(table);
+                this.eo.schema = this.schema; // Ensure schema is available
+            }
+
+            refreshStats() {
+                const stats = this.eo.getStatistics();
+                const statsDiv = document.getElementById('demoStats');
+
+                statsDiv.innerHTML = `
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">Total Records</div>
+                        <div class="demo-stat-value">${stats.totalRecords}</div>
+                    </div>
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">Total Cells</div>
+                        <div class="demo-stat-value">${stats.totalCells}</div>
+                    </div>
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">Cells with SUP</div>
+                        <div class="demo-stat-value">${stats.cellsWithSUP}</div>
+                    </div>
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">SUP Percentage</div>
+                        <div class="demo-stat-value">${stats.supPercentage}%</div>
+                    </div>
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">Emerging</div>
+                        <div class="demo-stat-value">${stats.stability.counts.emerging}</div>
+                    </div>
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">Forming</div>
+                        <div class="demo-stat-value">${stats.stability.counts.forming}</div>
+                    </div>
+                    <div class="demo-stat">
+                        <div class="demo-stat-label">Stable</div>
+                        <div class="demo-stat-value">${stats.stability.counts.stable}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize demo
+        const demo = new EODemo();
+        window.addEventListener('DOMContentLoaded', () => demo.init());
+    </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# UI refinement guidance moved
+
+The detailed UI component refinement guidance has been consolidated into `docs/ui-refinement.md` for easier maintenance and implementation.
+Refer to that document for the latest specifications and checklists.
