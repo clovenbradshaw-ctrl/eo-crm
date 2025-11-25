@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EO Airtable Sync - Demo</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- EO Airtable Sync System -->
+    <script src="eo_airtable_integration.js"></script>
+    <script src="eo_xano_integration.js"></script>
+    <script src="eo_softr_context.js"></script>
+    <script src="eo_sync_engine.js"></script>
+    <script src="eo_change_tracker.js"></script>
+    <script src="eo_rewind.js"></script>
+    <script src="eo_airtable_views.js"></script>
+    <script src="eo_sync_config.js"></script>
+    <script src="eo_sync_ui.js"></script>
+    <script src="eo_airtable_sync.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                    🔄 EO Airtable Sync Demo
+                </h1>
+                <div class="flex items-center gap-3">
+                    <span id="user-info" class="text-sm text-gray-600 dark:text-gray-400">
+                        Not initialized
+                    </span>
+                    <button
+                        onclick="showSyncConfig()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                    >
+                        ⚙️ Configure
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
+        <!-- Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+            <!-- Sync Status -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Sync Status</h3>
+                <p id="sync-status" class="text-2xl font-bold text-gray-900 dark:text-white">
+                    Not Started
+                </p>
+            </div>
+
+            <!-- Records Synced -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Records Synced</h3>
+                <p id="records-synced" class="text-2xl font-bold text-green-600 dark:text-green-400">
+                    0
+                </p>
+            </div>
+
+            <!-- Conflicts -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Conflicts</h3>
+                <p id="conflicts-count" class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    0
+                </p>
+            </div>
+
+            <!-- Last Sync -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Last Sync</h3>
+                <p id="last-sync" class="text-sm font-medium text-gray-900 dark:text-white">
+                    Never
+                </p>
+            </div>
+
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <button
+                    onclick="initializeSystem()"
+                    class="px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                >
+                    🚀 Initialize System
+                </button>
+
+                <button
+                    onclick="performSync()"
+                    id="sync-button"
+                    disabled
+                    class="px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    🔄 Sync Now
+                </button>
+
+                <button
+                    onclick="viewStatus()"
+                    id="status-button"
+                    disabled
+                    class="px-4 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    📊 View Status
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Tables & Views -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+
+            <!-- Tables -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Synced Tables</h2>
+                <div id="tables-list" class="space-y-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Initialize to see tables</p>
+                </div>
+            </div>
+
+            <!-- Views -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Synced Views</h2>
+                <div id="views-list" class="space-y-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Initialize to see views</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Activity Log -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
+            <div id="activity-log" class="space-y-2 max-h-96 overflow-y-auto">
+                <p class="text-sm text-gray-500 dark:text-gray-400">No activity yet</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-800 shadow mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+                EO Airtable Sync System • Built for EO Activibase
+            </p>
+        </div>
+    </footer>
+
+    <!-- Demo Scripts -->
+    <script>
+        let systemInitialized = false;
+
+        // Initialize the system
+        async function initializeSystem() {
+            try {
+                addActivity('Initializing system...');
+
+                const result = await initializeEOAirtableSync();
+
+                systemInitialized = true;
+
+                // Update UI
+                document.getElementById('user-info').textContent = `User: ${result.user.name || result.user.email || 'Anonymous'}`;
+                document.getElementById('sync-status').textContent = 'Initialized';
+                document.getElementById('sync-status').classList.add('text-green-600');
+
+                // Enable buttons
+                document.getElementById('sync-button').disabled = false;
+                document.getElementById('status-button').disabled = false;
+
+                // Display tables
+                displayTables(result.tables);
+
+                // Display views
+                displayViews(result.views);
+
+                addActivity(`✅ System initialized successfully! Found ${result.tables.length} tables and ${result.views.length} views.`);
+
+            } catch (error) {
+                addActivity(`❌ Initialization failed: ${error.message}`);
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Perform sync
+        async function performSync() {
+            if (!systemInitialized) {
+                alert('Please initialize the system first');
+                return;
+            }
+
+            try {
+                document.getElementById('sync-status').textContent = 'Syncing...';
+                addActivity('Starting sync...');
+
+                await window.eoSync.sync();
+
+                const status = window.eoSync.getStatus();
+
+                document.getElementById('sync-status').textContent = 'Idle';
+                document.getElementById('records-synced').textContent =
+                    status.syncStatus.stats.recordsCreated + status.syncStatus.stats.recordsUpdated;
+                document.getElementById('conflicts-count').textContent =
+                    status.syncStatus.stats.conflictsResolved;
+                document.getElementById('last-sync').textContent =
+                    formatTime(status.syncStatus.lastSync);
+
+                addActivity(`✅ Sync completed! Created: ${status.syncStatus.stats.recordsCreated}, Updated: ${status.syncStatus.stats.recordsUpdated}`);
+
+            } catch (error) {
+                document.getElementById('sync-status').textContent = 'Error';
+                addActivity(`❌ Sync failed: ${error.message}`);
+                console.error('Sync error:', error);
+            }
+        }
+
+        // View status
+        function viewStatus() {
+            if (!systemInitialized) {
+                alert('Please initialize the system first');
+                return;
+            }
+
+            const status = window.eoSync.getStatus();
+            console.log('System Status:', status);
+
+            alert(`System Status:
+
+Initialized: ${status.initialized}
+Running: ${status.isRunning}
+User: ${status.user.name || status.user.email}
+
+Sync Status:
+- Direction: ${status.syncStatus.config.direction}
+- Conflict Resolution: ${status.syncStatus.config.conflictResolution}
+- Auto-sync: ${status.syncStatus.config.autoSync}
+- Last Sync: ${status.syncStatus.lastSync || 'Never'}
+
+Stats:
+- Records Created: ${status.syncStatus.stats.recordsCreated}
+- Records Updated: ${status.syncStatus.stats.recordsUpdated}
+- Records Deleted: ${status.syncStatus.stats.recordsDeleted}
+- Conflicts Resolved: ${status.syncStatus.stats.conflictsResolved}
+
+Tables: ${status.airtableStats.tableCount}
+Views: ${status.viewsStats.totalViews}
+
+Dirty Entities: ${status.changeTrackerStats.dirtyEntities}
+Pending Activities: ${status.xanoQueueStatus.pending}
+            `);
+        }
+
+        // Display tables
+        function displayTables(tables) {
+            const container = document.getElementById('tables-list');
+            container.innerHTML = tables.map(table => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">${table.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${table.fields.length} fields</p>
+                    </div>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">${table.views.length} views</span>
+                </div>
+            `).join('');
+        }
+
+        // Display views
+        function displayViews(views) {
+            const container = document.getElementById('views-list');
+
+            if (views.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No views found</p>';
+                return;
+            }
+
+            container.innerHTML = views.slice(0, 10).map(view => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">${view.eoConfig.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">${view.eoConfig.tableName}</p>
+                    </div>
+                    <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                        ${view.eoConfig.type}
+                    </span>
+                </div>
+            `).join('');
+
+            if (views.length > 10) {
+                container.innerHTML += `<p class="text-xs text-gray-500 dark:text-gray-400 text-center">... and ${views.length - 10} more</p>`;
+            }
+        }
+
+        // Add activity to log
+        function addActivity(message) {
+            const container = document.getElementById('activity-log');
+
+            if (container.children[0]?.textContent === 'No activity yet') {
+                container.innerHTML = '';
+            }
+
+            const activity = document.createElement('div');
+            activity.className = 'p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-sm';
+            activity.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-900 dark:text-white">${message}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">${new Date().toLocaleTimeString()}</span>
+                </div>
+            `;
+
+            container.insertBefore(activity, container.firstChild);
+
+            // Keep only last 20 activities
+            if (container.children.length > 20) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // Format time
+        function formatTime(timestamp) {
+            if (!timestamp) return 'Never';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Update status periodically
+        setInterval(() => {
+            if (systemInitialized) {
+                const status = window.eoSync.getStatus();
+                document.getElementById('sync-status').textContent =
+                    status.syncStatus.isRunning ? 'Syncing...' : 'Idle';
+            }
+        }, 1000);
+
+        // Log initial message
+        addActivity('Ready to initialize. Click "Initialize System" or "Configure" to get started.');
+    </script>
+
+</body>
+</html>
