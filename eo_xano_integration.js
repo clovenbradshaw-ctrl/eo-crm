@@ -13,11 +13,14 @@ class XanoIntegration {
         this.baseUrl = config.baseUrl || null; // e.g., 'https://x8ki-letl-twmt.n7.xano.io/api:xxxxx'
         this.authToken = config.authToken || null;
 
-        // Activity endpoints
+        // Activity endpoints with clear PUT/GET separation
         this.endpoints = {
+            // PUT endpoint - for writing activity logs
             logActivity: config.activityEndpoint || '/activity',
+            // GET endpoints - for reading data
             getHistory: config.historyEndpoint || '/activity',
-            getSnapshot: config.snapshotEndpoint || '/activity/snapshot'
+            getSnapshot: config.snapshotEndpoint || '/activity/snapshot',
+            getTimeline: config.timelineEndpoint || '/activity/timeline'
         };
 
         // Local activity cache for offline support
