@@ -2850,6 +2850,9 @@
                         <div class="nav-item" onclick="openAddWorldModal()">+ Add World</div>
                         <div class="nav-item" onclick="importWorld()">Import World</div>
                         <div class="nav-item" onclick="exportWorld()">Export World</div>
+                        <div class="nav-item" id="navSettings" onclick="navigateTo('settings')" style="margin-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem;">
+                            <i class="ph ph-gear" style="margin-right: 0.5rem;"></i>Settings
+                        </div>
                     </div>
                 </div>
             </div>
@@ -9082,6 +9085,11 @@
                     // Open search modal
                     openSearchDataModal();
                     return; // Don't re-render for modal
+                case 'settings':
+                    state.currentSpecialView = 'settings';
+                    state.currentSetId = null;
+                    state.currentViewId = null;
+                    break;
                 default:
                     console.warn('Unknown navigation target:', page);
                     return;
@@ -10024,6 +10032,12 @@
 
             if (state.currentSpecialView === 'views') {
                 renderViewsPage();
+                updateMobileChrome();
+                return;
+            }
+
+            if (state.currentSpecialView === 'settings') {
+                renderSettingsPage();
                 updateMobileChrome();
                 return;
             }
@@ -14545,6 +14559,414 @@
 
                 </div>
             `;
+        }
+
+        function renderSettingsPage() {
+            const container = document.getElementById('viewContainer');
+            if (!container) return;
+
+            // Load existing config from localStorage
+            const storedConfig = localStorage.getItem('eo_sync_config');
+            const config = storedConfig ? JSON.parse(storedConfig) : {
+                airtable: { apiKey: null, baseId: null },
+                xano: {
+                    baseUrl: null,
+                    authToken: null,
+                    activityEndpoint: '/activity',
+                    historyEndpoint: '/activity',
+                    snapshotEndpoint: '/activity/snapshot',
+                    timelineEndpoint: '/activity/timeline'
+                },
+                sync: {
+                    direction: 'bidirectional',
+                    conflictResolution: 'superposition',
+                    autoSync: true,
+                    syncInterval: 30000
+                }
+            };
+
+            // Determine connection status
+            const hasAirtable = config.airtable?.apiKey && config.airtable?.baseId;
+            const hasXano = config.xano?.baseUrl;
+
+            container.innerHTML = `
+                <div style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+                    <!-- HEADER -->
+                    <div class="dashboard-header" style="margin-bottom: 2rem;">
+                        <h1 style="display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="ph ph-gear" style="font-size: 1.5rem;"></i>
+                            Settings
+                        </h1>
+                        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Configure your API integrations and sync settings</p>
+                    </div>
+
+                    <!-- CONNECTION STATUS -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                        <div style="flex: 1; padding: 1rem; border-radius: 8px; background: ${hasAirtable ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; border: 1px solid ${hasAirtable ? '#10b981' : '#ef4444'};">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="ph ${hasAirtable ? 'ph-check-circle' : 'ph-x-circle'}" style="color: ${hasAirtable ? '#10b981' : '#ef4444'};"></i>
+                                <span style="font-weight: 600;">Airtable</span>
+                            </div>
+                            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                ${hasAirtable ? 'Connected' : 'Not configured'}
+                            </p>
+                        </div>
+                        <div style="flex: 1; padding: 1rem; border-radius: 8px; background: ${hasXano ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; border: 1px solid ${hasXano ? '#10b981' : '#ef4444'};">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="ph ${hasXano ? 'ph-check-circle' : 'ph-x-circle'}" style="color: ${hasXano ? '#10b981' : '#ef4444'};"></i>
+                                <span style="font-weight: 600;">Xano</span>
+                            </div>
+                            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                ${hasXano ? 'Connected' : 'Not configured'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- AIRTABLE CONFIGURATION -->
+                    <div class="dashboard-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-table" style="color: #f59e0b;"></i>
+                                    Airtable Configuration
+                                </h2>
+                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">Connect to your Airtable base for data synchronization</p>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; gap: 1rem;">
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">API Key</label>
+                                <input type="password" id="settings-airtable-api-key"
+                                    placeholder="${config.airtable?.apiKey ? '••••••••••••• (saved)' : 'pat... or key...'}"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    Get your API key from <a href="https://airtable.com/account" target="_blank" style="color: #3b82f6;">airtable.com/account</a> or create a Personal Access Token
+                                </p>
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Base ID</label>
+                                <input type="text" id="settings-airtable-base-id"
+                                    placeholder="${config.airtable?.baseId ? config.airtable.baseId.substring(0, 7) + '••• (saved)' : 'app...'}"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    Found in your Airtable base URL: airtable.com/<strong>appXXXXXXXXXXXXXX</strong>/...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- XANO CONFIGURATION -->
+                    <div class="dashboard-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                            <div>
+                                <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-database" style="color: #8b5cf6;"></i>
+                                    Xano Configuration
+                                </h2>
+                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">Connect to your Xano backend for activity logging and history</p>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; gap: 1rem;">
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Base URL</label>
+                                <input type="text" id="settings-xano-base-url"
+                                    value="${config.xano?.baseUrl || ''}"
+                                    placeholder="https://x8ki-letl-twmt.n7.xano.io/api:xxxxx"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    Your Xano API base URL (found in API settings)
+                                </p>
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Auth Token (Optional)</label>
+                                <input type="password" id="settings-xano-auth-token"
+                                    placeholder="${config.xano?.authToken ? '••••••••••••• (saved)' : 'Leave empty if not required'}"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                            </div>
+
+                            <!-- Xano Endpoints -->
+                            <div style="margin-top: 0.5rem;">
+                                <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text-secondary);">API Endpoints</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div>
+                                        <label style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                            <i class="ph ph-arrow-up" style="color: #10b981;"></i> PUT - Activity Logs
+                                        </label>
+                                        <input type="text" id="settings-xano-activity-endpoint"
+                                            value="${config.xano?.activityEndpoint || '/activity'}"
+                                            placeholder="/activity"
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--muted-surface); font-size: 0.875rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                            <i class="ph ph-arrow-down" style="color: #3b82f6;"></i> GET - History
+                                        </label>
+                                        <input type="text" id="settings-xano-history-endpoint"
+                                            value="${config.xano?.historyEndpoint || '/activity'}"
+                                            placeholder="/activity"
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--muted-surface); font-size: 0.875rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                            <i class="ph ph-arrow-down" style="color: #3b82f6;"></i> GET - Snapshot (Optional)
+                                        </label>
+                                        <input type="text" id="settings-xano-snapshot-endpoint"
+                                            value="${config.xano?.snapshotEndpoint || '/activity/snapshot'}"
+                                            placeholder="/activity/snapshot"
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--muted-surface); font-size: 0.875rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 0.875rem; margin-bottom: 0.25rem;">
+                                            <i class="ph ph-arrow-down" style="color: #3b82f6;"></i> GET - Timeline (Optional)
+                                        </label>
+                                        <input type="text" id="settings-xano-timeline-endpoint"
+                                            value="${config.xano?.timelineEndpoint || '/activity/timeline'}"
+                                            placeholder="/activity/timeline"
+                                            style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--muted-surface); font-size: 0.875rem;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SYNC SETTINGS -->
+                    <div class="dashboard-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="margin-bottom: 1.5rem;">
+                            <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="ph ph-arrows-clockwise" style="color: #06b6d4;"></i>
+                                Sync Settings
+                            </h2>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">Configure how data synchronization behaves</p>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Sync Direction</label>
+                                <select id="settings-sync-direction"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                                    <option value="bidirectional" ${config.sync?.direction === 'bidirectional' ? 'selected' : ''}>Bidirectional (Two-way)</option>
+                                    <option value="airtable_to_eo" ${config.sync?.direction === 'airtable_to_eo' ? 'selected' : ''}>Airtable → EO (One-way)</option>
+                                    <option value="eo_to_airtable" ${config.sync?.direction === 'eo_to_airtable' ? 'selected' : ''}>EO → Airtable (One-way)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Conflict Resolution</label>
+                                <select id="settings-conflict-resolution"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                                    <option value="superposition" ${config.sync?.conflictResolution === 'superposition' ? 'selected' : ''}>Superposition (Keep both values)</option>
+                                    <option value="airtable_wins" ${config.sync?.conflictResolution === 'airtable_wins' ? 'selected' : ''}>Airtable Always Wins</option>
+                                    <option value="eo_wins" ${config.sync?.conflictResolution === 'eo_wins' ? 'selected' : ''}>EO Always Wins</option>
+                                    <option value="newest_wins" ${config.sync?.conflictResolution === 'newest_wins' ? 'selected' : ''}>Newest Timestamp Wins</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Sync Interval (seconds)</label>
+                                <input type="number" id="settings-sync-interval"
+                                    value="${(config.sync?.syncInterval || 30000) / 1000}"
+                                    min="10" max="3600"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--muted-surface); font-size: 0.875rem;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding-top: 1.5rem;">
+                                <input type="checkbox" id="settings-auto-sync"
+                                    ${config.sync?.autoSync !== false ? 'checked' : ''}
+                                    style="width: 1.25rem; height: 1.25rem;">
+                                <label for="settings-auto-sync" style="font-weight: 500;">Enable Auto-sync</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; padding-top: 1rem;">
+                        <button class="btn btn-secondary" onclick="resetSettingsForm()">
+                            <i class="ph ph-arrow-counter-clockwise"></i>
+                            Reset
+                        </button>
+                        <button class="btn btn-secondary" onclick="testSettingsConnection()">
+                            <i class="ph ph-plugs-connected"></i>
+                            Test Connection
+                        </button>
+                        <button class="btn btn-primary" onclick="saveSettingsPage()">
+                            <i class="ph ph-floppy-disk"></i>
+                            Save Settings
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveSettingsPage() {
+            // Load existing config to preserve credentials if fields are empty
+            const storedConfig = localStorage.getItem('eo_sync_config');
+            const existingConfig = storedConfig ? JSON.parse(storedConfig) : {};
+
+            // Read form values
+            const apiKey = document.getElementById('settings-airtable-api-key')?.value.trim();
+            const baseId = document.getElementById('settings-airtable-base-id')?.value.trim();
+            const xanoBaseUrl = document.getElementById('settings-xano-base-url')?.value.trim();
+            const xanoAuthToken = document.getElementById('settings-xano-auth-token')?.value.trim();
+            const activityEndpoint = document.getElementById('settings-xano-activity-endpoint')?.value.trim();
+            const historyEndpoint = document.getElementById('settings-xano-history-endpoint')?.value.trim();
+            const snapshotEndpoint = document.getElementById('settings-xano-snapshot-endpoint')?.value.trim();
+            const timelineEndpoint = document.getElementById('settings-xano-timeline-endpoint')?.value.trim();
+            const syncDirection = document.getElementById('settings-sync-direction')?.value;
+            const conflictResolution = document.getElementById('settings-conflict-resolution')?.value;
+            const syncInterval = parseInt(document.getElementById('settings-sync-interval')?.value || '30') * 1000;
+            const autoSync = document.getElementById('settings-auto-sync')?.checked;
+
+            // Build new config with credential protection
+            const newConfig = {
+                airtable: {
+                    apiKey: apiKey || existingConfig.airtable?.apiKey || null,
+                    baseId: baseId || existingConfig.airtable?.baseId || null,
+                    tables: existingConfig.airtable?.tables || [],
+                    schema: existingConfig.airtable?.schema || null
+                },
+                xano: {
+                    baseUrl: xanoBaseUrl || existingConfig.xano?.baseUrl || null,
+                    authToken: xanoAuthToken || existingConfig.xano?.authToken || null,
+                    activityEndpoint: activityEndpoint || '/activity',
+                    historyEndpoint: historyEndpoint || '/activity',
+                    snapshotEndpoint: snapshotEndpoint || '/activity/snapshot',
+                    timelineEndpoint: timelineEndpoint || '/activity/timeline'
+                },
+                sync: {
+                    direction: syncDirection || 'bidirectional',
+                    conflictResolution: conflictResolution || 'superposition',
+                    autoSync: autoSync !== false,
+                    syncInterval: syncInterval || 30000,
+                    batchSize: existingConfig.sync?.batchSize || 50
+                },
+                ui: existingConfig.ui || {
+                    showSyncPanel: true,
+                    enableNotifications: true
+                }
+            };
+
+            // Validate required fields
+            const errors = [];
+            if (!newConfig.airtable.apiKey) {
+                errors.push('Airtable API Key is required');
+            } else if (!newConfig.airtable.apiKey.startsWith('key') && !newConfig.airtable.apiKey.startsWith('pat')) {
+                errors.push('Airtable API Key should start with "key" or "pat"');
+            }
+
+            if (!newConfig.airtable.baseId) {
+                errors.push('Airtable Base ID is required');
+            } else if (!newConfig.airtable.baseId.startsWith('app')) {
+                errors.push('Airtable Base ID should start with "app"');
+            }
+
+            if (!newConfig.xano.baseUrl) {
+                errors.push('Xano Base URL is required');
+            } else if (!newConfig.xano.baseUrl.startsWith('http')) {
+                errors.push('Xano Base URL must start with http:// or https://');
+            }
+
+            if (errors.length > 0) {
+                showToast('⚠️ ' + errors[0]);
+                return;
+            }
+
+            // Save to localStorage
+            localStorage.setItem('eo_sync_config', JSON.stringify(newConfig));
+
+            // Update global eoSyncConfig if it exists
+            if (window.eoSyncConfig) {
+                window.eoSyncConfig.config = newConfig;
+            }
+
+            showToast('✓ Settings saved successfully');
+
+            // Re-render to update status indicators
+            renderSettingsPage();
+        }
+
+        function resetSettingsForm() {
+            if (confirm('Are you sure you want to reset all settings? This will clear your saved configuration.')) {
+                localStorage.removeItem('eo_sync_config');
+                if (window.eoSyncConfig) {
+                    window.eoSyncConfig.config = {
+                        airtable: { apiKey: null, baseId: null },
+                        xano: {
+                            baseUrl: null,
+                            authToken: null,
+                            activityEndpoint: '/activity',
+                            historyEndpoint: '/activity',
+                            snapshotEndpoint: '/activity/snapshot',
+                            timelineEndpoint: '/activity/timeline'
+                        },
+                        sync: {
+                            direction: 'bidirectional',
+                            conflictResolution: 'superposition',
+                            autoSync: true,
+                            syncInterval: 30000
+                        }
+                    };
+                }
+                showToast('Settings reset to defaults');
+                renderSettingsPage();
+            }
+        }
+
+        async function testSettingsConnection() {
+            // First save the current form values
+            saveSettingsPage();
+
+            const storedConfig = localStorage.getItem('eo_sync_config');
+            if (!storedConfig) {
+                showToast('⚠️ Please save settings first');
+                return;
+            }
+
+            const config = JSON.parse(storedConfig);
+            showToast('Testing connections...');
+
+            let airtableOk = false;
+            let xanoOk = false;
+
+            // Test Airtable
+            if (config.airtable?.apiKey && config.airtable?.baseId) {
+                try {
+                    const url = `https://api.airtable.com/v0/meta/bases/${config.airtable.baseId}/tables`;
+                    const response = await fetch(url, {
+                        headers: { 'Authorization': `Bearer ${config.airtable.apiKey}` }
+                    });
+                    airtableOk = response.ok;
+                } catch (e) {
+                    console.error('Airtable test failed:', e);
+                }
+            }
+
+            // Test Xano
+            if (config.xano?.baseUrl) {
+                try {
+                    const url = config.xano.baseUrl + (config.xano.historyEndpoint || '/activity') + '?limit=1';
+                    const headers = {};
+                    if (config.xano.authToken) {
+                        headers['Authorization'] = `Bearer ${config.xano.authToken}`;
+                    }
+                    const response = await fetch(url, { headers });
+                    xanoOk = response.ok;
+                } catch (e) {
+                    console.error('Xano test failed:', e);
+                }
+            }
+
+            // Show results
+            if (airtableOk && xanoOk) {
+                showToast('✓ All connections successful!');
+            } else if (airtableOk) {
+                showToast('✓ Airtable OK, ✗ Xano failed');
+            } else if (xanoOk) {
+                showToast('✗ Airtable failed, ✓ Xano OK');
+            } else {
+                showToast('✗ Both connections failed');
+            }
+
+            // Re-render to update status
+            renderSettingsPage();
         }
 
         function attachConnectionRelationInlineEditing() {
