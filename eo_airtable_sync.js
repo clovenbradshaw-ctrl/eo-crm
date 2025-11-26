@@ -73,9 +73,10 @@ class EOAirtableSync {
             this.xano = new XanoIntegration({
                 baseUrl: cfg.xano.baseUrl,
                 authToken: cfg.xano.authToken,
-                activityEndpoint: cfg.xano.activityEndpoint,
-                historyEndpoint: cfg.xano.historyEndpoint,
-                snapshotEndpoint: cfg.xano.snapshotEndpoint
+                putEndpoint: cfg.xano.putEndpoint,
+                getHistoryEndpoint: cfg.xano.getHistoryEndpoint,
+                getSnapshotEndpoint: cfg.xano.getSnapshotEndpoint,
+                getTimelineEndpoint: cfg.xano.getTimelineEndpoint
             });
             await this.xano.initialize();
 

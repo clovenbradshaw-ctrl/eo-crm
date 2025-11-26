@@ -13,11 +13,15 @@ class XanoIntegration {
         this.baseUrl = config.baseUrl || null; // e.g., 'https://x8ki-letl-twmt.n7.xano.io/api:xxxxx'
         this.authToken = config.authToken || null;
 
-        // Activity endpoints
+        // Activity endpoints - clearly separated by operation type
         this.endpoints = {
-            logActivity: config.activityEndpoint || '/activity',
-            getHistory: config.historyEndpoint || '/activity',
-            getSnapshot: config.snapshotEndpoint || '/activity/snapshot'
+            // PUT endpoint (for storing/logging activity)
+            putActivity: config.putEndpoint || config.activityEndpoint || '/activity',
+
+            // GET endpoints (for retrieving data)
+            getHistory: config.getHistoryEndpoint || config.historyEndpoint || '/activity',
+            getSnapshot: config.getSnapshotEndpoint || config.snapshotEndpoint || '/activity/snapshot',
+            getTimeline: config.getTimelineEndpoint || '/activity/timeline'
         };
 
         // Local activity cache for offline support
@@ -67,7 +71,7 @@ class XanoIntegration {
         const activityRecord = this.normalizeActivity(activity);
 
         try {
-            const response = await this.apiRequest(this.endpoints.logActivity, {
+            const response = await this.apiRequest(this.endpoints.putActivity, {
                 method: 'PUT',
                 body: JSON.stringify(activityRecord)
             });
@@ -75,7 +79,7 @@ class XanoIntegration {
             // Add to local cache
             this.addToCache(activityRecord);
 
-            console.log(`✓ Logged activity: ${activity.action} by ${activity.user?.name || 'system'}`);
+            console.log(`✓ Logged activity via PUT to ${this.endpoints.putActivity}: ${activity.action} by ${activity.user?.name || 'system'}`);
 
             return response;
         } catch (error) {
@@ -320,7 +324,7 @@ class XanoIntegration {
         const batch = this.pendingQueue.splice(0, this.batchSize);
 
         try {
-            const response = await this.apiRequest(this.endpoints.logActivity, {
+            const response = await this.apiRequest(this.endpoints.putActivity, {
                 method: 'PUT',
                 body: JSON.stringify({ activities: batch })
             });
@@ -328,7 +332,7 @@ class XanoIntegration {
             // Add to cache
             batch.forEach(activity => this.addToCache(activity));
 
-            console.log(`✓ Logged batch of ${batch.length} activities`);
+            console.log(`✓ Logged batch of ${batch.length} activities via PUT to ${this.endpoints.putActivity}`);
 
             return response;
         } catch (error) {

@@ -13,23 +13,46 @@ class SyncConfiguration {
         // Configuration storage
         this.config = {
             airtable: {
+                // Authentication
                 apiKey: null,
                 baseId: null,
-                tables: [] // List of table IDs to sync
+
+                // API endpoints (usually don't need to change these)
+                apiBaseUrl: 'https://api.airtable.com/v0',
+                metaApiUrl: 'https://api.airtable.com/v0/meta',
+
+                // Operations info
+                getEndpoint: null, // Auto-constructed from baseId, but can override
+                postEndpoint: null, // Auto-constructed from baseId, but can override
+
+                // Advanced
+                tables: [], // List of specific table IDs to sync (empty = all tables)
+                rateLimit: 5 // Requests per second
             },
             xano: {
-                baseUrl: null,
-                authToken: null,
-                activityEndpoint: '/activity',
-                historyEndpoint: '/activity',
-                snapshotEndpoint: '/activity/snapshot'
+                // Base configuration
+                baseUrl: null, // e.g., 'https://x8ki-letl-twmt.n7.xano.io/api:xxxxx'
+                authToken: null, // Optional auth token
+
+                // PUT endpoint (for storing activity data)
+                putEndpoint: '/activity', // PUT to this endpoint to log activities
+
+                // GET endpoints (for retrieving data)
+                getHistoryEndpoint: '/activity', // GET from this for history
+                getSnapshotEndpoint: '/activity/snapshot', // GET from this for snapshots
+                getTimelineEndpoint: '/activity/timeline', // GET from this for timelines
+
+                // Advanced
+                batchSize: 10,
+                retryAttempts: 3
             },
             sync: {
                 direction: 'bidirectional',
                 conflictResolution: 'superposition',
                 autoSync: true,
                 syncInterval: 30000, // 30 seconds
-                batchSize: 50
+                batchSize: 50,
+                preserveBlankFields: true // Don't overwrite with blank values
             },
             ui: {
                 showSyncPanel: true,
@@ -141,48 +164,107 @@ class SyncConfiguration {
         form.id = 'eo-sync-config-form';
 
         // Airtable section
-        const airtableSection = this.createSection('Airtable Configuration', [
+        const airtableSection = this.createSection('Airtable API Configuration', [
             {
                 id: 'airtable-api-key',
-                label: 'API Key',
+                label: '🔑 API Key *',
                 type: 'password',
-                placeholder: 'key...',
-                help: 'Get your API key from https://airtable.com/account',
-                value: this.config.airtable.apiKey
+                placeholder: 'keyXXXXXXXXXXXXXX',
+                help: '⚠️ Required: Get your API key from https://airtable.com/account',
+                value: this.config.airtable.apiKey,
+                required: true
             },
             {
                 id: 'airtable-base-id',
-                label: 'Base ID',
+                label: '📊 Base ID *',
                 type: 'text',
-                placeholder: 'app...',
-                help: 'Found in your Airtable base URL',
-                value: this.config.airtable.baseId
+                placeholder: 'appXXXXXXXXXXXXXX',
+                help: '⚠️ Required: Found in your Airtable base URL (e.g., https://airtable.com/appXXXXXXXXXXXXXX)',
+                value: this.config.airtable.baseId,
+                required: true
+            },
+            {
+                type: 'divider',
+                label: 'API Endpoints (Usually auto-configured)'
+            },
+            {
+                id: 'airtable-api-base-url',
+                label: '📡 API Base URL (GET/POST)',
+                type: 'text',
+                placeholder: 'https://api.airtable.com/v0',
+                help: 'Base URL for Airtable API operations (reads and writes)',
+                value: this.config.airtable.apiBaseUrl
+            },
+            {
+                id: 'airtable-meta-api-url',
+                label: '🔍 Meta API URL (GET Schema)',
+                type: 'text',
+                placeholder: 'https://api.airtable.com/v0/meta',
+                help: 'URL for fetching table schema and metadata',
+                value: this.config.airtable.metaApiUrl
             }
         ]);
 
-        // Xano section
-        const xanoSection = this.createSection('Xano Configuration', [
+        // Xano section - organized by operation type
+        const xanoSection = this.createSection('Xano API Configuration', [
             {
                 id: 'xano-base-url',
-                label: 'Base URL',
+                label: '🌐 Base URL *',
                 type: 'text',
                 placeholder: 'https://x8ki-letl-twmt.n7.xano.io/api:xxxxx',
-                help: 'Your Xano API base URL',
-                value: this.config.xano.baseUrl
+                help: '⚠️ Required: Your Xano workspace API base URL',
+                value: this.config.xano.baseUrl,
+                required: true
             },
             {
                 id: 'xano-auth-token',
-                label: 'Auth Token (Optional)',
+                label: '🔐 Auth Token (Optional)',
                 type: 'password',
-                placeholder: 'Leave empty if not required',
+                placeholder: 'Leave blank if not using authentication',
+                help: 'Optional: Bearer token for authenticated requests',
                 value: this.config.xano.authToken
             },
             {
-                id: 'xano-activity-endpoint',
-                label: 'Activity Endpoint',
+                type: 'divider',
+                label: 'PUT Endpoint (For Storing Activity)'
+            },
+            {
+                id: 'xano-put-endpoint',
+                label: '📤 PUT Activity Endpoint *',
                 type: 'text',
                 placeholder: '/activity',
-                value: this.config.xano.activityEndpoint
+                help: '⚠️ Required: Endpoint to PUT/store activity logs (e.g., /activity, /logs, /events)',
+                value: this.config.xano.putEndpoint,
+                required: true
+            },
+            {
+                type: 'divider',
+                label: 'GET Endpoints (For Retrieving Data)'
+            },
+            {
+                id: 'xano-get-history-endpoint',
+                label: '📥 GET History Endpoint *',
+                type: 'text',
+                placeholder: '/activity',
+                help: '⚠️ Required: Endpoint to GET activity history (e.g., /activity, /history)',
+                value: this.config.xano.getHistoryEndpoint,
+                required: true
+            },
+            {
+                id: 'xano-get-snapshot-endpoint',
+                label: '📸 GET Snapshot Endpoint',
+                type: 'text',
+                placeholder: '/activity/snapshot',
+                help: 'Optional: Endpoint to GET point-in-time snapshots',
+                value: this.config.xano.getSnapshotEndpoint
+            },
+            {
+                id: 'xano-get-timeline-endpoint',
+                label: '📅 GET Timeline Endpoint',
+                type: 'text',
+                placeholder: '/activity/timeline',
+                help: 'Optional: Endpoint to GET formatted timelines',
+                value: this.config.xano.getTimelineEndpoint
             }
         ]);
 
@@ -260,6 +342,21 @@ class SyncConfiguration {
      */
     createField(field) {
         const container = document.createElement('div');
+
+        // Handle dividers
+        if (field.type === 'divider') {
+            container.className = 'pt-2 pb-1';
+            const divider = document.createElement('div');
+            divider.className = 'flex items-center gap-2';
+            divider.innerHTML = `
+                <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">${field.label}</span>
+                <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+            `;
+            container.appendChild(divider);
+            return container;
+        }
+
         container.className = 'space-y-1';
 
         const label = document.createElement('label');
@@ -294,6 +391,12 @@ class SyncConfiguration {
             input.placeholder = field.placeholder || '';
             input.value = field.value || '';
 
+            // Mark required fields
+            if (field.required) {
+                input.required = true;
+                input.className += ' border-blue-300 dark:border-blue-600';
+            }
+
             if (field.min !== undefined) input.min = field.min;
             if (field.max !== undefined) input.max = field.max;
         }
@@ -322,19 +425,36 @@ class SyncConfiguration {
     }
 
     /**
-     * Save configuration
+     * Save configuration (protects against blank values overwriting existing data)
      */
     save() {
         const form = this.elements.form;
 
-        // Read values from form
-        this.config.airtable.apiKey = form.querySelector('#airtable-api-key').value;
-        this.config.airtable.baseId = form.querySelector('#airtable-base-id').value;
+        // Helper function: only update if not blank (unless existing value is also blank)
+        const safeUpdate = (target, key, newValue) => {
+            // If new value is not blank, use it
+            if (newValue && newValue.trim() !== '') {
+                target[key] = newValue.trim();
+            }
+            // If new value is blank but existing is also blank/null, keep blank
+            // If new value is blank but existing has value, keep existing (don't overwrite)
+        };
 
-        this.config.xano.baseUrl = form.querySelector('#xano-base-url').value;
-        this.config.xano.authToken = form.querySelector('#xano-auth-token').value;
-        this.config.xano.activityEndpoint = form.querySelector('#xano-activity-endpoint').value;
+        // Airtable Configuration
+        safeUpdate(this.config.airtable, 'apiKey', form.querySelector('#airtable-api-key').value);
+        safeUpdate(this.config.airtable, 'baseId', form.querySelector('#airtable-base-id').value);
+        safeUpdate(this.config.airtable, 'apiBaseUrl', form.querySelector('#airtable-api-base-url').value);
+        safeUpdate(this.config.airtable, 'metaApiUrl', form.querySelector('#airtable-meta-api-url').value);
 
+        // Xano Configuration
+        safeUpdate(this.config.xano, 'baseUrl', form.querySelector('#xano-base-url').value);
+        safeUpdate(this.config.xano, 'authToken', form.querySelector('#xano-auth-token').value);
+        safeUpdate(this.config.xano, 'putEndpoint', form.querySelector('#xano-put-endpoint').value);
+        safeUpdate(this.config.xano, 'getHistoryEndpoint', form.querySelector('#xano-get-history-endpoint').value);
+        safeUpdate(this.config.xano, 'getSnapshotEndpoint', form.querySelector('#xano-get-snapshot-endpoint').value);
+        safeUpdate(this.config.xano, 'getTimelineEndpoint', form.querySelector('#xano-get-timeline-endpoint').value);
+
+        // Sync Settings (these can be empty, so update directly)
         this.config.sync.direction = form.querySelector('#sync-direction').value;
         this.config.sync.conflictResolution = form.querySelector('#conflict-resolution').value;
         this.config.sync.autoSync = form.querySelector('#auto-sync').checked;
@@ -344,7 +464,7 @@ class SyncConfiguration {
         const validation = this.validate();
 
         if (!validation.isValid) {
-            alert(`Configuration Error:\n${validation.errors.join('\n')}`);
+            alert(`Configuration Error:\n\n${validation.errors.join('\n')}`);
             return false;
         }
 
@@ -352,6 +472,17 @@ class SyncConfiguration {
         this.saveToStorage();
 
         console.log('✓ Configuration saved');
+        console.log('Airtable:', {
+            hasApiKey: !!this.config.airtable.apiKey,
+            hasBaseId: !!this.config.airtable.baseId,
+            apiBaseUrl: this.config.airtable.apiBaseUrl
+        });
+        console.log('Xano:', {
+            hasBaseUrl: !!this.config.xano.baseUrl,
+            hasAuthToken: !!this.config.xano.authToken,
+            putEndpoint: this.config.xano.putEndpoint,
+            getHistoryEndpoint: this.config.xano.getHistoryEndpoint
+        });
 
         // Notify user
         this.showNotification('Configuration saved successfully!', 'success');
@@ -387,7 +518,10 @@ class SyncConfiguration {
             const xano = new XanoIntegration({
                 baseUrl: this.config.xano.baseUrl,
                 authToken: this.config.xano.authToken,
-                activityEndpoint: this.config.xano.activityEndpoint
+                putEndpoint: this.config.xano.putEndpoint,
+                getHistoryEndpoint: this.config.xano.getHistoryEndpoint,
+                getSnapshotEndpoint: this.config.xano.getSnapshotEndpoint,
+                getTimelineEndpoint: this.config.xano.getTimelineEndpoint
             });
 
             await xano.initialize();
@@ -409,27 +543,39 @@ class SyncConfiguration {
 
         // Airtable validation
         if (!this.config.airtable.apiKey) {
-            errors.push('Airtable API Key is required');
+            errors.push('⚠️ Airtable API Key is required');
         } else if (!this.config.airtable.apiKey.startsWith('key')) {
-            errors.push('Airtable API Key should start with "key"');
+            errors.push('⚠️ Airtable API Key should start with "key"');
         }
 
         if (!this.config.airtable.baseId) {
-            errors.push('Airtable Base ID is required');
+            errors.push('⚠️ Airtable Base ID is required');
         } else if (!this.config.airtable.baseId.startsWith('app')) {
-            errors.push('Airtable Base ID should start with "app"');
+            errors.push('⚠️ Airtable Base ID should start with "app"');
+        }
+
+        if (!this.config.airtable.apiBaseUrl) {
+            errors.push('⚠️ Airtable API Base URL is required (usually https://api.airtable.com/v0)');
         }
 
         // Xano validation
         if (!this.config.xano.baseUrl) {
-            errors.push('Xano Base URL is required');
+            errors.push('⚠️ Xano Base URL is required');
         } else if (!this.config.xano.baseUrl.startsWith('http')) {
-            errors.push('Xano Base URL must be a valid URL');
+            errors.push('⚠️ Xano Base URL must be a valid URL starting with http:// or https://');
+        }
+
+        if (!this.config.xano.putEndpoint) {
+            errors.push('⚠️ Xano PUT Endpoint is required (e.g., /activity)');
+        }
+
+        if (!this.config.xano.getHistoryEndpoint) {
+            errors.push('⚠️ Xano GET History Endpoint is required (e.g., /activity)');
         }
 
         // Sync validation
         if (this.config.sync.syncInterval < 10000) {
-            errors.push('Sync interval must be at least 10 seconds');
+            errors.push('⚠️ Sync interval must be at least 10 seconds');
         }
 
         return {
