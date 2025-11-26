@@ -14656,6 +14656,27 @@
                         </div>
                     </div>
 
+                    <!-- AIRTABLE TABLES -->
+                    <div class="dashboard-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                            <div>
+                                <h2 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-list-dashes" style="color: #10b981;"></i>
+                                    Airtable Tables
+                                </h2>
+                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">Import tables and views from your Airtable base</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="loadAirtableTables()" id="load-tables-btn" ${!hasAirtable ? 'disabled' : ''}>
+                                <i class="ph ph-cloud-arrow-down"></i>
+                                Load Tables
+                            </button>
+                        </div>
+
+                        <div id="airtable-tables-container">
+                            ${renderAirtableTablesSection(config)}
+                        </div>
+                    </div>
+
                     <!-- XANO CONFIGURATION -->
                     <div class="dashboard-section" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
@@ -14967,6 +14988,238 @@
 
             // Re-render to update status
             renderSettingsPage();
+        }
+
+        function renderAirtableTablesSection(config) {
+            const tables = config.airtable?.tables || [];
+            const schema = config.airtable?.schema;
+
+            if (!tables || tables.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="ph ph-table" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <p style="margin-top: 0.5rem;">No tables loaded yet</p>
+                        <p style="font-size: 0.875rem;">Configure Airtable credentials above, then click "Load Tables"</p>
+                    </div>
+                `;
+            }
+
+            const fetchedAt = schema?.fetchedAt ? new Date(schema.fetchedAt).toLocaleString() : 'Unknown';
+
+            return `
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid #10b981;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #10b981;">
+                        <i class="ph ph-check-circle"></i>
+                        <span style="font-weight: 600;">${tables.length} table${tables.length !== 1 ? 's' : ''} loaded</span>
+                        <span style="color: var(--text-secondary); font-size: 0.875rem; margin-left: auto;">Last fetched: ${fetchedAt}</span>
+                    </div>
+                </div>
+                <div style="display: grid; gap: 0.75rem;">
+                    ${tables.map(table => `
+                        <div style="background: var(--muted-surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <i class="ph ph-table" style="font-size: 1.25rem; color: #f59e0b;"></i>
+                                    <div>
+                                        <div style="font-weight: 600;">${table.name}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                            ${table.fields?.length || 0} fields
+                                            ${table.views?.length ? ` • ${table.views.length} view${table.views.length !== 1 ? 's' : ''}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); font-family: monospace;">
+                                    ${table.id}
+                                </div>
+                            </div>
+                            ${table.views?.length > 0 ? `
+                                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                                    <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.5rem;">Views:</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        ${table.views.map(view => `
+                                            <span style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem;">
+                                                <i class="ph ${getViewIcon(view.type)}" style="color: #8b5cf6;"></i>
+                                                ${view.name}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${table.fields?.length > 0 ? `
+                                <details style="margin-top: 0.75rem;">
+                                    <summary style="cursor: pointer; font-size: 0.75rem; color: var(--text-secondary);">
+                                        Show fields (${table.fields.length})
+                                    </summary>
+                                    <div style="margin-top: 0.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem;">
+                                        ${table.fields.map(field => `
+                                            <div style="display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem;">
+                                                <i class="ph ${getFieldIcon(field.type)}" style="color: #6b7280;"></i>
+                                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${field.name}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </details>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getViewIcon(viewType) {
+            const icons = {
+                'grid': 'ph-grid-four',
+                'form': 'ph-text-columns',
+                'calendar': 'ph-calendar',
+                'gallery': 'ph-images-square',
+                'kanban': 'ph-kanban',
+                'timeline': 'ph-chart-line-up',
+                'gantt': 'ph-chart-bar-horizontal'
+            };
+            return icons[viewType] || 'ph-squares-four';
+        }
+
+        function getFieldIcon(fieldType) {
+            const icons = {
+                'singleLineText': 'ph-text-t',
+                'multilineText': 'ph-text-align-left',
+                'richText': 'ph-text-aa',
+                'number': 'ph-hash',
+                'percent': 'ph-percent',
+                'currency': 'ph-currency-dollar',
+                'singleSelect': 'ph-list',
+                'multipleSelects': 'ph-list-checks',
+                'date': 'ph-calendar-blank',
+                'dateTime': 'ph-calendar',
+                'checkbox': 'ph-check-square',
+                'multipleRecordLinks': 'ph-link',
+                'formula': 'ph-function',
+                'rollup': 'ph-stack',
+                'count': 'ph-number-circle-one',
+                'lookup': 'ph-magnifying-glass',
+                'multipleAttachments': 'ph-paperclip',
+                'url': 'ph-link-simple',
+                'email': 'ph-envelope',
+                'phoneNumber': 'ph-phone',
+                'rating': 'ph-star',
+                'duration': 'ph-timer',
+                'barcode': 'ph-barcode',
+                'button': 'ph-cursor-click',
+                'autoNumber': 'ph-number-square-one',
+                'createdTime': 'ph-clock',
+                'createdBy': 'ph-user',
+                'lastModifiedTime': 'ph-clock-counter-clockwise',
+                'lastModifiedBy': 'ph-user-circle'
+            };
+            return icons[fieldType] || 'ph-textbox';
+        }
+
+        async function loadAirtableTables() {
+            const btn = document.getElementById('load-tables-btn');
+            const container = document.getElementById('airtable-tables-container');
+
+            // Get current config
+            const storedConfig = localStorage.getItem('eo_sync_config');
+            if (!storedConfig) {
+                showToast('Please save your Airtable credentials first');
+                return;
+            }
+
+            const config = JSON.parse(storedConfig);
+
+            if (!config.airtable?.apiKey || !config.airtable?.baseId) {
+                showToast('Airtable API Key and Base ID are required');
+                return;
+            }
+
+            // Update button to loading state
+            const originalBtnContent = btn.innerHTML;
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Loading...';
+            btn.disabled = true;
+
+            // Show loading in container
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="ph ph-spinner ph-spin" style="font-size: 2rem;"></i>
+                    <p style="margin-top: 0.5rem;">Fetching tables from Airtable...</p>
+                </div>
+            `;
+
+            try {
+                // Fetch tables from Airtable Meta API
+                const url = \`https://api.airtable.com/v0/meta/bases/\${config.airtable.baseId}/tables\`;
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': \`Bearer \${config.airtable.apiKey}\`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || \`API error: \${response.status}\`);
+                }
+
+                const data = await response.json();
+
+                // Process tables
+                const tables = data.tables.map(table => ({
+                    id: table.id,
+                    name: table.name,
+                    primaryFieldId: table.primaryFieldId,
+                    fields: table.fields.map(f => ({
+                        id: f.id,
+                        name: f.name,
+                        type: f.type,
+                        description: f.description || '',
+                        options: f.options || {}
+                    })),
+                    views: table.views.map(v => ({
+                        id: v.id,
+                        name: v.name,
+                        type: v.type
+                    }))
+                }));
+
+                // Update config with tables
+                config.airtable.tables = tables;
+                config.airtable.schema = {
+                    tables: data.tables,
+                    fetchedAt: new Date().toISOString()
+                };
+
+                // Save to localStorage
+                localStorage.setItem('eo_sync_config', JSON.stringify(config));
+
+                // Update global config if exists
+                if (window.eoSyncConfig) {
+                    window.eoSyncConfig.config = config;
+                }
+
+                // Count total fields and views
+                const totalFields = tables.reduce((sum, t) => sum + (t.fields?.length || 0), 0);
+                const totalViews = tables.reduce((sum, t) => sum + (t.views?.length || 0), 0);
+
+                showToast(\`Loaded \${tables.length} tables, \${totalFields} fields, \${totalViews} views\`);
+
+                // Re-render the tables section
+                container.innerHTML = renderAirtableTablesSection(config);
+
+            } catch (error) {
+                console.error('Failed to load Airtable tables:', error);
+                showToast(\`Failed to load tables: \${error.message}\`);
+
+                container.innerHTML = \`
+                    <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                        <i class="ph ph-warning-circle" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 0.5rem;">Failed to load tables</p>
+                        <p style="font-size: 0.875rem;">\${error.message}</p>
+                    </div>
+                \`;
+            } finally {
+                // Restore button
+                btn.innerHTML = originalBtnContent;
+                btn.disabled = false;
+            }
         }
 
         function attachConnectionRelationInlineEditing() {
